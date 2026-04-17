@@ -50,7 +50,9 @@ export default function SOSPage() {
   };
 
   const toggle = (i: number) => {
-    const s = new Set(checked); s.has(i) ? s.delete(i) : s.add(i); setChecked(s);
+    const s = new Set(checked);
+    if (s.has(i)) s.delete(i); else s.add(i);
+    setChecked(s);
   };
 
   return (
