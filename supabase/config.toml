@@ -1,1 +1,7 @@
 project_id = "driozvzpklxmknuszhky"
+
+[functions.yatrabot]
+verify_jwt = false
+
+[functions.analyze-scam]
+verify_jwt = false
