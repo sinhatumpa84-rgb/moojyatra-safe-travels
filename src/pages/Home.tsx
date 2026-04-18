@@ -3,21 +3,39 @@ import { motion } from "framer-motion";
 import HeroScene from "@/components/HeroScene";
 import { LangCtx } from "@/lib/types";
 import { t } from "@/lib/i18n";
-import { ShieldCheck, MapPin, IndianRupee, Users, Bot, ShieldAlert, Trophy, AlertTriangle, Sparkles } from "lucide-react";
+import { ShieldCheck, MapPin, IndianRupee, Bot, ShieldAlert, AlertTriangle, Sparkles, Camera } from "lucide-react";
 import CurrencyTiles from "@/components/CurrencyTiles";
+import WeatherWidget from "@/components/WeatherWidget";
+import NewsFeed from "@/components/NewsFeed";
+import { useEffect, useState } from "react";
 
 const features = [
   { icon: IndianRupee, color: "from-pink-400 to-purple-500", title: "Price Truth DB", desc: "See local vs tourist vs official price for 100+ items across 8 cities. Crowdsourced, AI-verified.", to: "/prices" },
-  { icon: MapPin, color: "from-blue-400 to-emerald-400", title: "Live Scam Map", desc: "Real-time map with scam zones, monuments, restaurants and verified guides near you.", to: "/map" },
-  { icon: ShieldAlert, color: "from-red-500 to-orange-400", title: "One-tap SOS", desc: "Send live location to emergency contacts. 112, 1091, tourist police — one button.", to: "/sos" },
-  { icon: Bot, color: "from-purple-500 to-blue-500", title: "YatraBot AI", desc: "Multilingual chatbot (EN/HI/BN). Scam advice, legal help, prices, anything travel.", to: "/chat" },
-  { icon: Users, color: "from-yellow-400 to-pink-400", title: "Verified Guides", desc: "Uber-style booking with rated, govt-licensed guides who speak your language.", to: "/guides" },
-  { icon: AlertTriangle, color: "from-orange-500 to-red-500", title: "AI Scam Report", desc: "Upload evidence — AI maps it to IPC sections and drafts a complaint to police.", to: "/report" },
+  { icon: MapPin, color: "from-blue-400 to-emerald-400", title: "Live Smart Map", desc: "Real-time map with scam zones, weather, news. Click to drop a manual pin anywhere in India.", to: "/map" },
+  { icon: ShieldAlert, color: "from-red-500 to-orange-400", title: "One-tap SOS", desc: "Send live location to emergency contacts. 112, 1091, embassies — one button.", to: "/sos" },
+  { icon: Bot, color: "from-purple-500 to-blue-500", title: "YatraBot AI", desc: "Multilingual chatbot. Scam advice, legal help, prices, anything travel.", to: "/chat" },
+  { icon: Camera, color: "from-yellow-400 to-pink-400", title: "Nearby Famous Places", desc: "Auto-discover monuments, temples, museums near you. Check in to earn points & badges.", to: "/nearby" },
+  { icon: AlertTriangle, color: "from-orange-500 to-red-500", title: "AI Scam Report", desc: "Voice or text + photo. AI maps to IPC sections and drafts a complaint to police.", to: "/report" },
 ];
 
 export default function Home() {
   const { lang } = useOutletContext<LangCtx>();
   const tt = t[lang];
+  const [pos, setPos] = useState<[number, number]>([28.6139, 77.2090]);
+  const [city, setCity] = useState("Delhi");
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition((p) => {
+      setPos([p.coords.latitude, p.coords.longitude]);
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&zoom=10`)
+        .then((r) => r.json())
+        .then((d) => {
+          const a = d?.address || {};
+          setCity(a.city || a.town || a.village || a.state || "your area");
+        }).catch(() => {});
+    }, () => {}, { timeout: 5000 });
+  }, []);
 
   return (
     <div className="container px-4">
