@@ -7,7 +7,7 @@ const navItems = [
   { to: "/", icon: Sparkles, key: "home" },
   { to: "/map", icon: Map, key: "map" },
   { to: "/prices", icon: IndianRupee, key: "prices" },
-  { to: "/guides", icon: Users, key: "guides" },
+  { to: "/nearby", icon: Users, key: "nearby" },
   { to: "/report", icon: AlertTriangle, key: "report" },
   { to: "/sos", icon: ShieldAlert, key: "sos" },
   { to: "/leaderboard", icon: Trophy, key: "leaderboard" },
