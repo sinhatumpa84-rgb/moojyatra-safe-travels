@@ -80,9 +80,15 @@ export default function Home() {
       <section className="my-16">
         <div className="flex items-end justify-between mb-4">
           <h2 className="text-3xl font-bold">Live currency to <span className="gradient-text">INR</span></h2>
-          <span className="text-xs text-muted-foreground">via exchangerate.host</span>
+          <span className="text-xs text-muted-foreground">Updated daily · open.er-api</span>
         </div>
         <CurrencyTiles />
+      </section>
+
+      {/* Weather + Live News */}
+      <section className="my-16 grid lg:grid-cols-2 gap-5">
+        <WeatherWidget lat={pos[0]} lng={pos[1]} label={city} />
+        <NewsFeed city={city} />
       </section>
 
       {/* Features grid */}
