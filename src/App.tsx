@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import MapPage from "./pages/MapPage";
 import PricesPage from "./pages/PricesPage";
 import GuidesPage from "./pages/GuidesPage";
+import NearbyPlacesPage from "./pages/NearbyPlacesPage";
 import SOSPage from "./pages/SOSPage";
 import ReportPage from "./pages/ReportPage";
 import ChatPage from "./pages/ChatPage";
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/map" element={<MapPage />} />
             <Route path="/prices" element={<PricesPage />} />
             <Route path="/guides" element={<GuidesPage />} />
+            <Route path="/nearby" element={<NearbyPlacesPage />} />
             <Route path="/sos" element={<SOSPage />} />
             <Route path="/report" element={<ReportPage />} />
             <Route path="/chat" element={<ChatPage />} />
