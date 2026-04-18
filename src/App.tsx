@@ -13,6 +13,7 @@ import SOSPage from "./pages/SOSPage";
 import ReportPage from "./pages/ReportPage";
 import ChatPage from "./pages/ChatPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
+import VisitPage from "./pages/VisitPage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/prices" element={<PricesPage />} />
             <Route path="/guides" element={<GuidesPage />} />
             <Route path="/nearby" element={<NearbyPlacesPage />} />
+            <Route path="/visit" element={<VisitPage />} />
             <Route path="/sos" element={<SOSPage />} />
             <Route path="/report" element={<ReportPage />} />
             <Route path="/chat" element={<ChatPage />} />
