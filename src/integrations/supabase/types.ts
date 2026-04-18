@@ -418,6 +418,48 @@ export type Database = {
           },
         ]
       }
+      visited_places: {
+        Row: {
+          badge_code: string | null
+          bill_url: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          photo_url: string
+          place_lat: number | null
+          place_lng: number | null
+          place_name: string
+          points_awarded: number
+          user_id: string
+        }
+        Insert: {
+          badge_code?: string | null
+          bill_url?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          photo_url: string
+          place_lat?: number | null
+          place_lng?: number | null
+          place_name: string
+          points_awarded?: number
+          user_id: string
+        }
+        Update: {
+          badge_code?: string | null
+          bill_url?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          photo_url?: string
+          place_lat?: number | null
+          place_lng?: number | null
+          place_name?: string
+          points_awarded?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

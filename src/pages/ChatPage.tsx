@@ -5,11 +5,12 @@ import { detectLang, Lang } from "@/lib/i18n";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const STARTERS: Record<Lang, string[]> = {
+const STARTERS: Partial<Record<Lang, string[]>> = {
   en: ["What's the real auto fare in Delhi?", "Common Taj Mahal scams?", "I was overcharged — what law applies?"],
   hi: ["दिल्ली में ऑटो का असली किराया?", "ताजमहल पर आम धोखे?", "मुझसे ज़्यादा पैसे लिए — कानून क्या कहता है?"],
   bn: ["দিল্লিতে অটোর সঠিক ভাড়া?", "তাজমহলে সাধারণ প্রতারণা?", "আমার থেকে বেশি নিয়েছে — আইন কী বলে?"],
 };
+const FALLBACK_STARTERS = STARTERS.en!;
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -92,7 +93,7 @@ export default function ChatPage() {
             <div className="text-center py-8">
               <p className="text-sm text-muted-foreground mb-3">Try:</p>
               <div className="flex flex-wrap justify-center gap-2">
-                {STARTERS[lang].map((s) => (
+                {(STARTERS[lang] ?? FALLBACK_STARTERS).map((s) => (
                   <button key={s} onClick={() => send(s)} className="glass text-xs px-3 py-1.5 hover:bg-white/15">{s}</button>
                 ))}
               </div>
