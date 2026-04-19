@@ -418,6 +418,36 @@ export type Database = {
           },
         ]
       }
+      user_presence: {
+        Row: {
+          avatar_url: string | null
+          city: string | null
+          display_name: string | null
+          lat: number
+          lng: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          city?: string | null
+          display_name?: string | null
+          lat: number
+          lng: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          city?: string | null
+          display_name?: string | null
+          lat?: number
+          lng?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       visited_places: {
         Row: {
           badge_code: string | null
