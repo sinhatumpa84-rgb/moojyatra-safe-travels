@@ -134,16 +134,14 @@ export default function MapPage() {
             <Marker position={pos} icon={colorIcon("#FF6B81", "★")}>
               <Popup>You are here<br />{locationLabel}</Popup>
             </Marker>
-            {filters.scam && zones.map((z) => (
-              <div key={z.id}>
-                <Circle center={[z.lat, z.lng]} radius={z.radius_m} pathOptions={{ color: riskColor(z.risk_level), fillOpacity: 0.2 }} />
-                <Marker position={[z.lat, z.lng]} icon={colorIcon(riskColor(z.risk_level), "!")}>
-                  <Popup>
-                    <strong>⚠️ {z.name}</strong><br />Risk: <b>{z.risk_level}</b><br />{z.description}
-                  </Popup>
-                </Marker>
-              </div>
-            ))}
+            {filters.scam && zones.flatMap((z) => [
+              <Circle key={`c-${z.id}`} center={[z.lat, z.lng]} radius={z.radius_m || 500} pathOptions={{ color: riskColor(z.risk_level), fillOpacity: 0.2 }} />,
+              <Marker key={`m-${z.id}`} position={[z.lat, z.lng]} icon={colorIcon(riskColor(z.risk_level), "!")}>
+                <Popup>
+                  <strong>⚠️ {z.name}</strong><br />Risk: <b>{z.risk_level}</b><br />{z.description}
+                </Popup>
+              </Marker>,
+            ])}
             {filters.cities && cities.map((c) => (
               <Marker key={c.id} position={[c.lat, c.lng]} icon={colorIcon("#9D4EDD")}>
                 <Popup><strong>📍 {c.name}</strong><br />{c.state}</Popup>
