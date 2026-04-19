@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import { Map, ShieldAlert, Sparkles, Users, MessageCircle, IndianRupee, Trophy, AlertTriangle, Camera, Globe } from "lucide-react";
+import { Map, ShieldAlert, Sparkles, Users, MessageCircle, IndianRupee, Trophy, AlertTriangle, Camera, Globe, Plane } from "lucide-react";
 import { Lang, t, LANGUAGES } from "@/lib/i18n";
 
 const navItems = [
@@ -19,7 +19,9 @@ export default function Navbar({ lang, setLang }: { lang: Lang; setLang: (l: Lan
     <header className="sticky top-0 z-40 px-4 pt-4">
       <div className="container glass-strong flex items-center justify-between px-4 py-3 rounded-2xl gap-3">
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <div className="w-9 h-9 rounded-xl bg-gradient-sunset grid place-items-center font-black text-base text-white shadow-glow-pink">M</div>
+          <div className="w-9 h-9 rounded-xl bg-gradient-sunset grid place-items-center font-black text-base text-white shadow-glow-pink">
+            <Plane className="w-5 h-5" fill="currentColor" />
+          </div>
           <div className="flex flex-col leading-none">
             <span className="font-extrabold tracking-tight gradient-text text-lg">MoojYatra</span>
             <span className="text-[10px] text-muted-foreground">Anti-scam travel</span>

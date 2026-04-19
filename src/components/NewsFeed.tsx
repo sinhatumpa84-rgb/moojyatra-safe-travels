@@ -36,7 +36,7 @@ export default function NewsFeed({ city }: { city?: string }) {
 
   return (
     <div className="glass-strong p-5">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-1">
         <h3 className="font-bold flex items-center gap-2"><Newspaper className="w-4 h-4 text-primary" /> Live news {city ? `· ${city}` : "· India"}</h3>
         <div className="flex gap-1">
           {TOPICS.map((t) => (
@@ -47,8 +47,18 @@ export default function NewsFeed({ city }: { city?: string }) {
           ))}
         </div>
       </div>
+      <div className="text-[10px] text-muted-foreground mb-3 text-balance">
+        Aggregated in real-time from various local and national publishers.
+      </div>
       {loading ? (
-        <div className="text-sm text-muted-foreground">Loading headlines…</div>
+        <div className="space-y-2" aria-busy="true" aria-label="Loading news">
+          {[100, 85, 92, 78, 88].map((w, i) => (
+            <div key={i} className="glass p-3 space-y-2">
+              <div className={`skeleton h-3.5`} style={{ width: `${w}%` }} />
+              <div className="skeleton h-3" style={{ width: "55%" }} />
+            </div>
+          ))}
+        </div>
       ) : items.length === 0 ? (
         <div className="text-sm text-muted-foreground flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> No news right now.</div>
       ) : (

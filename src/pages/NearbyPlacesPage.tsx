@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { MapPin, Sparkles, Camera, Trophy, Loader2, Navigation, Star } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MapPin, Sparkles, Camera, Trophy, Loader2, Navigation, Star, Upload, X, MapPinOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import confetti from "canvas-confetti";
 
 type Place = {
   id: string;
@@ -33,17 +34,23 @@ export default function NearbyPlacesPage() {
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(false);
   const [city, setCity] = useState("");
+  
   const [visited, setVisited] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem("mooj_visited") || "[]")); } catch { return new Set(); }
   });
   const [points, setPoints] = useState(() => Number(localStorage.getItem("mooj_points") || "0"));
 
+  // Check-In Modal State
+  const [checkInPlace, setCheckInPlace] = useState<Place | null>(null);
+  const [photoBlob, setPhotoBlob] = useState<string | null>(null);
+  const [review, setReview] = useState("");
+
   useEffect(() => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
+      navigator.geolocation.watchPosition(
         (p) => setPos([p.coords.latitude, p.coords.longitude]),
         () => {},
-        { timeout: 5000 }
+        { enableHighAccuracy: true, timeout: 5000 }
       );
     }
   }, []);
@@ -93,7 +100,14 @@ export default function NearbyPlacesPage() {
     }
   };
 
-  useEffect(() => { fetchNearby(pos[0], pos[1]); }, [pos]);
+  // Only trigger massive overpass API fetch when map fundamentally jumps long distances
+  const lastFetched = useRef<[number, number] | null>(null);
+  useEffect(() => { 
+    if (!lastFetched.current || distM(lastFetched.current, pos) > 4000) {
+      lastFetched.current = pos;
+      fetchNearby(pos[0], pos[1]); 
+    }
+  }, [pos]);
 
   const searchCity = async () => {
     if (!city.trim()) return;
@@ -102,38 +116,139 @@ export default function NearbyPlacesPage() {
       const d = await r.json();
       if (d?.[0]) {
         setPos([Number(d[0].lat), Number(d[0].lon)]);
-        toast.success(`Loaded ${d[0].display_name}`);
+        toast.success(`Scanning places around ${d[0].display_name.split(",")[0]}`);
       } else toast.error("City not found");
     } catch { toast.error("Search failed"); }
   };
 
-  const checkIn = async (p: Place) => {
-    if (visited.has(p.id)) { toast.info("Already checked in here"); return; }
-    const next = new Set(visited); next.add(p.id);
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0]) return;
+    setPhotoBlob(URL.createObjectURL(e.target.files[0]));
+  };
+
+  const submitCheckIn = async () => {
+    if (!checkInPlace) return;
+    if (distM(pos, [checkInPlace.lat, checkInPlace.lng]) > 500) {
+      return toast.error("You must be within 500m of this location to check in.");
+    }
+    if (!photoBlob) {
+      return toast.error("Please provide photographic proof of your visit.");
+    }
+
+    // Leaderboard + Points update
+    const next = new Set(visited); next.add(checkInPlace.id);
     const newPoints = points + 25;
-    setVisited(next); setPoints(newPoints);
+    
+    setVisited(next); 
+    setPoints(newPoints);
     localStorage.setItem("mooj_visited", JSON.stringify([...next]));
     localStorage.setItem("mooj_points", String(newPoints));
-    toast.success(`+25 points · ${p.name} ✨`);
+    
+    // Trigger awesome micro-interaction
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#FFD700', '#FF6B81', '#3b82f6', '#10b981']
+    });
+
+    toast.success(
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-warn/20 flex items-center justify-center shrink-0">
+          <Trophy className="w-6 h-6 text-warn" />
+        </div>
+        <div>
+          <div className="font-bold text-base">+25 Points Earned!</div>
+          <div className="text-xs text-muted-foreground">Checked into {checkInPlace.name}</div>
+        </div>
+      </div>,
+      { duration: 4000 }
+    );
 
     // Sync to backend if logged in
     const { data: u } = await supabase.auth.getUser();
-    if (u.user) {
+    if (u?.user) {
       await supabase.from("profiles").update({ points: newPoints }).eq("user_id", u.user.id);
     }
+
+    setCheckInPlace(null);
+    setPhotoBlob(null);
+    setReview("");
   };
 
   return (
     <div className="container px-4 py-6">
+      
+      {/* Proof of Visit Modal */}
+      <AnimatePresence>
+        {checkInPlace && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/90 backdrop-blur-sm p-4 text-left">
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
+                className="glass-strong max-w-md w-full p-6 rounded-2xl relative shadow-soft border border-white/10 flex flex-col max-h-[90vh]">
+              <button onClick={() => setCheckInPlace(null)} className="absolute top-4 right-4 text-muted-foreground hover:text-white glass p-1 rounded-full"><X className="w-5 h-5"/></button>
+              
+              <h2 className="text-xl font-bold mb-1 flex items-center gap-2"><Camera className="text-primary" /> Proof of Visit</h2>
+              <p className="text-sm text-muted-foreground mb-4">Validate your visit to <b>{checkInPlace.name}</b> to claim +25 points.</p>
+
+              {/* Photo Upload Area */}
+              <div className="mb-4">
+                <label className="text-xs font-medium text-white/70 mb-2 block">Upload Verification Photo *</label>
+                {photoBlob ? (
+                  <div className="relative w-full h-40 rounded-xl overflow-hidden glass">
+                     <img src={photoBlob} alt="Preview" className="w-full h-full object-cover" />
+                     <button onClick={() => setPhotoBlob(null)} className="absolute top-2 right-2 bg-black/60 text-white p-1.5 rounded-full"><X className="w-4 h-4"/></button>
+                  </div>
+                ) : (
+                  <label className="w-full h-40 border-2 border-dashed border-white/20 rounded-xl flex flex-col items-center justify-center text-muted-foreground cursor-pointer hover:bg-white/5 transition group">
+                    <Upload className="w-8 h-8 mb-2 group-hover:text-primary transition" />
+                    <span className="text-sm">Tap or Drag to upload photo</span>
+                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
+                  </label>
+                )}
+              </div>
+
+              {/* Verification Review */}
+              <div className="mb-4">
+                <label className="text-xs font-medium text-white/70 mb-2 block">Proof of Visit Message (optional)</label>
+                <textarea 
+                  value={review} onChange={e => setReview(e.target.value)}
+                  placeholder="Drop a tip or review for other travelers..."
+                  className="w-full glass bg-transparent border border-white/10 rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-primary/50" rows={3}></textarea>
+              </div>
+
+              {/* GPS Validation Logic Banner */}
+              {distM(pos, [checkInPlace.lat, checkInPlace.lng]) > 500 ? (
+                <div className="bg-destructive/10 border border-destructive/20 text-destructive text-xs p-3 rounded-xl flex items-center gap-2 mb-4">
+                  <MapPinOff className="w-5 h-5 shrink-0" />
+                  <span><b>Too far away!</b> You are {(distM(pos, [checkInPlace.lat, checkInPlace.lng]) / 1000).toFixed(1)}km from the destination. You must be within 500m to verify.</span>
+                </div>
+              ) : (
+                <div className="bg-safe/10 border border-safe/20 text-safe text-xs p-3 rounded-xl flex items-center gap-2 mb-4">
+                  <MapPin className="w-5 h-5 shrink-0" />
+                  <span><b>GPS Match!</b> You are within the 500m verification radius.</span>
+                </div>
+              )}
+
+              <button 
+                onClick={submitCheckIn} 
+                disabled={distM(pos, [checkInPlace.lat, checkInPlace.lng]) > 500 || !photoBlob}
+                className="w-full bg-gradient-pink-blue text-white font-bold py-3.5 rounded-xl disabled:opacity-50 disabled:grayscale transition flex items-center justify-center gap-2">
+                <Trophy className="w-5 h-5" /> Submit & Earn +25 Points
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex flex-wrap justify-between items-end gap-3 mb-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2"><Sparkles className="text-primary" /> Nearby Places to Visit</h1>
-          <p className="text-sm text-muted-foreground">Famous spots within 8 km · Check in to earn points</p>
+          <p className="text-sm text-muted-foreground">Famous spots within 8 km · Check in to earn leaderboard points</p>
         </div>
         <div className="glass-strong px-4 py-2 flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-warn" />
-          <span className="font-bold gradient-text">{points} pts</span>
-          <span className="text-xs text-muted-foreground">· {visited.size} visited</span>
+          <Trophy className="w-5 h-5 text-warn" />
+          <span className="font-bold gradient-text text-lg">{points} <span className="text-sm font-semibold opacity-80">pts</span></span>
         </div>
       </div>
 
@@ -153,40 +268,70 @@ export default function NearbyPlacesPage() {
       </div>
 
       {loading ? (
-        <div className="glass-strong p-12 text-center">
+        <div className="glass-strong p-12 text-center h-64 flex flex-col justify-center items-center">
           <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary" />
-          <div className="text-sm text-muted-foreground mt-3">Discovering famous places…</div>
+          <div className="text-sm text-muted-foreground mt-3">Discovering famous places nearby…</div>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {places.map((p, i) => (
-            <motion.div key={p.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-              className="glass-strong overflow-hidden flex flex-col">
-              {p.wiki?.thumb ? (
-                <img src={p.wiki.thumb} alt={p.name} className="w-full h-40 object-cover" />
-              ) : (
-                <div className="w-full h-40 bg-gradient-to-br from-primary/30 via-purple-500/20 to-secondary/30 grid place-items-center">
-                  <Camera className="w-10 h-10 text-white/60" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {places.map((p, i) => {
+            const distanceM = distM(pos, [p.lat, p.lng]);
+            const isNear = distanceM <= 500;
+            const isVisited = visited.has(p.id);
+
+            return (
+              <motion.div key={p.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}
+                className="glass-strong overflow-hidden flex flex-col h-72 relative group rounded-2xl">
+                
+                {/* Full Card Background Image Strategy */}
+                <div className="absolute inset-0 z-0 bg-background">
+                  {p.wiki?.thumb ? (
+                    <img src={p.wiki.thumb} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                  ) : (
+                    // Fallback to a sophisticated geometric gradient if no image is available
+                    <div className="w-full h-full bg-gradient-to-br from-indigo-900 via-primary/40 to-slate-900 grid place-items-center opacity-80 mix-blend-screen overflow-hidden">
+                      <Camera className="w-24 h-24 text-white/10 absolute rotate-12 scale-150" />
+                    </div>
+                  )}
+                  {/* Subtle Gradient Overlay so white text is always readable */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/60 to-transparent"></div>
                 </div>
-              )}
-              <div className="p-4 flex-1 flex flex-col">
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <h3 className="font-bold leading-tight">{p.name}</h3>
-                  {visited.has(p.id) && <Star className="w-4 h-4 text-warn fill-warn flex-shrink-0" />}
+
+                {/* Card Content Overlay */}
+                <div className="relative z-10 p-4 h-full flex flex-col justify-end">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h3 className="font-bold leading-tight text-white line-clamp-2">{p.name}</h3>
+                    {isVisited && <Star className="w-5 h-5 text-warn fill-warn flex-shrink-0 drop-shadow-md" />}
+                  </div>
+                  
+                  <div className="text-[11px] font-medium text-white/80 mb-2 flex items-center gap-1.5 uppercase tracking-wider">
+                    <span className="bg-white/20 px-2 py-0.5 rounded-md backdrop-blur-sm">{TYPE_LABEL[p.type] || "📍 Place"}</span>
+                    <span>· {(distanceM / 1000).toFixed(1)} km</span>
+                  </div>
+                  
+                  <p className="text-xs text-white/70 line-clamp-2 flex-1 mb-3">{p.wiki?.extract || "A highly rated noteworthy destination. Visit to document and review your experience."}</p>
+                  
+                  <div className="flex gap-2 shrink-0">
+                    <button onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`)} 
+                      className="w-10 flex shrink-0 items-center justify-center text-xs glass bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur-md transition">
+                      <Navigation className="w-4 h-4"/>
+                    </button>
+                    
+                    <button onClick={() => setCheckInPlace(p)} disabled={isVisited}
+                      className={`flex-1 text-sm font-bold py-2.5 rounded-xl transition-all ${
+                        isVisited 
+                          ? "bg-safe/20 text-safe backdrop-blur-md cursor-default" 
+                          : isNear
+                            ? "bg-safe text-white shadow-[0_0_20px_rgba(34,197,94,0.4)] animate-pulse hover:bg-green-400"
+                            : "bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/5"
+                      }`}>
+                      {isVisited ? "✓ Completed" : (isNear ? "Check in +25" : "Check in +25")}
+                    </button>
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground mb-2">{TYPE_LABEL[p.type] || "📍 Place"} · {(p.distance / 1000).toFixed(1)} km</div>
-                <p className="text-xs text-muted-foreground line-clamp-3 flex-1">{p.wiki?.extract || "A noteworthy spot near you. Visit and tell us about it."}</p>
-                <div className="flex gap-2 mt-3">
-                  <a href={`https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lng}#map=18/${p.lat}/${p.lng}`} target="_blank" rel="noopener noreferrer"
-                    className="flex-1 text-center text-xs glass py-2 hover:bg-white/15">Directions</a>
-                  <button onClick={() => checkIn(p)} disabled={visited.has(p.id)}
-                    className={`flex-1 text-xs font-semibold py-2 rounded-xl transition ${visited.has(p.id) ? "bg-safe/20 text-safe" : "bg-gradient-pink-blue text-white hover:scale-[1.02]"}`}>
-                    {visited.has(p.id) ? "✓ Visited" : "Check in +25"}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Camera, Upload, MapPin, Loader2, CheckCircle2, Receipt, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import confetti from "canvas-confetti";
 
 type Badge = { id: string; code: string; name: string; description: string | null; icon: string | null; points: number | null };
 
@@ -71,14 +72,13 @@ export default function VisitPage() {
 
   async function uploadFile(file: File, folder: string): Promise<string> {
     const ext = file.name.split(".").pop() || "jpg";
-    const path = `${folder}/${user.id}/${Date.now()}.${ext}`;
+    const path = `${folder}/${user?.id || "anonymous"}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("scam-evidence").upload(path, file, { upsert: false });
     if (error) throw error;
     return supabase.storage.from("scam-evidence").getPublicUrl(path).data.publicUrl;
   }
 
   async function submit() {
-    if (!user) { toast.error("Please sign in first"); return; }
     if (!place.trim()) { toast.error("Place name required"); return; }
     if (!photo) { toast.error("Photo of the place required"); return; }
     setLoading(true);
@@ -88,8 +88,8 @@ export default function VisitPage() {
       const badgeCode = detectBadge(place);
       const points = badgeCode ? (allBadges.find((b) => b.code === badgeCode)?.points || 50) : 50;
 
-      const { error: insErr } = await supabase.from("visited_places").insert({
-        user_id: user.id,
+      // Handle null user for guest submissions
+      const submitData: any = {
         place_name: place.trim(),
         place_lat: pos?.[0] ?? null,
         place_lng: pos?.[1] ?? null,
@@ -98,29 +98,44 @@ export default function VisitPage() {
         notes: notes.trim() || null,
         points_awarded: points,
         badge_code: badgeCode,
-      });
+      };
+      if (user?.id) submitData.user_id = user.id;
+
+      const { error: insErr } = await supabase.from("visited_places").insert(submitData);
       if (insErr) throw insErr;
 
-      // bump profile points
-      const { data: prof } = await supabase.from("profiles").select("points").eq("user_id", user.id).maybeSingle();
-      const newPts = (prof?.points ?? 0) + points;
-      await supabase.from("profiles").update({ points: newPts }).eq("user_id", user.id);
+      // bump profile points and award badges ONLY if logged in
+      if (user) {
+        const { data: prof } = await supabase.from("profiles").select("points").eq("user_id", user.id).maybeSingle();
+        const newPts = (prof?.points ?? 0) + points;
+        await supabase.from("profiles").update({ points: newPts }).eq("user_id", user.id);
 
-      // award badge
-      if (badgeCode) {
-        const { data: badge } = await supabase.from("badges").select("id").eq("code", badgeCode).maybeSingle();
-        if (badge?.id) {
-          await supabase.from("user_badges").insert({ user_id: user.id, badge_id: badge.id });
+        if (badgeCode) {
+          const { data: badge } = await supabase.from("badges").select("id").eq("code", badgeCode).maybeSingle();
+          if (badge?.id) {
+            await supabase.from("user_badges").insert({ user_id: user.id, badge_id: badge.id });
+          }
+        }
+
+        if (myCount + 1 >= 10) {
+          const { data: mega } = await supabase.from("badges").select("id").eq("code", "bharat_yatri").maybeSingle();
+          if (mega?.id) await supabase.from("user_badges").insert({ user_id: user.id, badge_id: mega.id });
         }
       }
 
-      // mega badge: visited 10+ places
-      if (myCount + 1 >= 10) {
-        const { data: mega } = await supabase.from("badges").select("id").eq("code", "bharat_yatri").maybeSingle();
-        if (mega?.id) await supabase.from("user_badges").insert({ user_id: user.id, badge_id: mega.id });
-      }
+      // Sync local Gamification points for guest testing
+      const currentLocal = Number(localStorage.getItem("mooj_points") || "0");
+      localStorage.setItem("mooj_points", String(currentLocal + points));
 
       setDone({ points, badge: badgeCode || undefined });
+      
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#FFD700', '#FF6B81', '#3b82f6', '#10b981']
+      });
+
       setPlace(""); setNotes(""); setPhoto(null); setBill(null);
     } catch (e: any) {
       toast.error(e.message || "Submission failed");
@@ -134,13 +149,8 @@ export default function VisitPage() {
       <h1 className="text-4xl font-bold flex items-center gap-2 mb-1"><Camera className="text-pink-400" /> Submit your visit</h1>
       <p className="text-muted-foreground mb-6">Visited a famous place in India? Upload a photo + bill (optional) and earn points & badges.</p>
 
-      {!user && (
-        <div className="glass-strong p-5 mb-5 flex items-center justify-between">
-          <p className="text-sm">Sign in to submit visits and earn points.</p>
-          <button onClick={signInQuick} className="bg-gradient-pink-blue text-white px-4 py-2 rounded-lg text-sm font-semibold">Sign in</button>
-        </div>
-      )}
-
+      {/* Auth UI removed temporarily as requested */}
+      
       {done && (
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
           className="glass-strong p-5 mb-5 border border-safe/40">
@@ -149,6 +159,7 @@ export default function VisitPage() {
             <div>
               <div className="font-bold">+{done.points} points awarded!</div>
               {done.badge && <div className="text-sm text-primary-glow flex items-center gap-1"><Trophy className="w-4 h-4" /> Badge unlocked: {allBadges.find((b) => b.code === done.badge)?.name}</div>}
+              {!user && <div className="text-xs text-muted-foreground mt-1">Sign in later to permanently save this badge to an account.</div>}
             </div>
           </div>
         </motion.div>
@@ -198,7 +209,7 @@ export default function VisitPage() {
           </div>
         )}
 
-        <button onClick={submit} disabled={loading || !user}
+        <button onClick={submit} disabled={loading}
           className="w-full bg-gradient-pink-blue text-white font-semibold py-3 rounded-lg disabled:opacity-50 flex items-center justify-center gap-2">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trophy className="w-4 h-4" />}
           {loading ? "Uploading…" : "Submit & earn points"}
