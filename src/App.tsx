@@ -14,6 +14,7 @@ import ReportPage from "./pages/ReportPage";
 import ChatPage from "./pages/ChatPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import VisitPage from "./pages/VisitPage";
+import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/report" element={<ReportPage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
