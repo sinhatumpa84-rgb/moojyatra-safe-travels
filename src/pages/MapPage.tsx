@@ -2,11 +2,12 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } 
 import L from "leaflet";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { motion } from "framer-motion";
-import { ShieldAlert, Users, AlertTriangle, MapPin, Navigation, Search, Crosshair } from "lucide-react";
+import { ShieldAlert, Users, AlertTriangle, MapPin, Navigation, Search, Crosshair, UserCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import WeatherWidget from "@/components/WeatherWidget";
 import NewsFeed from "@/components/NewsFeed";
+import { usePresence } from "@/hooks/usePresence";
+import { useAuth } from "@/hooks/useAuth";
 
 import iconUrl from "leaflet/dist/images/marker-icon.png";
 import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
@@ -40,7 +41,9 @@ export default function MapPage() {
   const [pinMode, setPinMode] = useState(false);
   const [locationLabel, setLocationLabel] = useState<string>("Delhi");
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState({ scam: true, cities: true });
+  const [filters, setFilters] = useState({ scam: true, cities: true, travelers: true });
+  const { user } = useAuth();
+  const travelers = usePresence(pos, locationLabel, !!user);
 
   useEffect(() => {
     supabase.from("scam_zones").select("*").then(({ data }) => setZones(data || []));
@@ -91,7 +94,11 @@ export default function MapPage() {
           <p className="text-sm text-muted-foreground">Showing: <b>{locationLabel}</b> · Click 📍 then tap map to set location</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {([["scam", "Scam zones", AlertTriangle, "bg-destructive/20 text-destructive"], ["cities", "Cities", MapPin, "bg-primary/20 text-primary"]] as const).map(([k, lbl, Icon, cls]) => (
+          {([
+            ["scam", "Scam zones", AlertTriangle, "bg-destructive/20 text-destructive"],
+            ["cities", "Cities", MapPin, "bg-primary/20 text-primary"],
+            ["travelers", `Travelers (${travelers.length})`, UserCircle2, "bg-secondary/20 text-secondary"],
+          ] as const).map(([k, lbl, Icon, cls]) => (
             <button key={k} onClick={() => setFilters((f) => ({ ...f, [k]: !f[k as keyof typeof f] }))}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium glass ${filters[k as keyof typeof filters] ? cls : "opacity-50"}`}>
               <Icon className="w-4 h-4" /> {lbl}
@@ -140,6 +147,15 @@ export default function MapPage() {
             {filters.cities && cities.map((c) => (
               <Marker key={c.id} position={[c.lat, c.lng]} icon={colorIcon("#9D4EDD")}>
                 <Popup><strong>📍 {c.name}</strong><br />{c.state}</Popup>
+              </Marker>
+            ))}
+            {filters.travelers && travelers.map((tr) => (
+              <Marker key={tr.user_id} position={[tr.lat, tr.lng]} icon={colorIcon("#4D96FF", "🧳")}>
+                <Popup>
+                  <strong>🧳 {tr.display_name || "Traveler"}</strong><br />
+                  {tr.city ? `Near ${tr.city}` : "Currently exploring"}<br />
+                  <span style={{fontSize:11,opacity:0.7}}>Last seen {new Date(tr.updated_at).toLocaleTimeString()}</span>
+                </Popup>
               </Marker>
             ))}
           </MapContainer>
