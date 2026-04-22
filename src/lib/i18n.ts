@@ -53,6 +53,7 @@ type Dict = Record<string, string>;
 const en: Dict = {
   home: "Home", map: "Live Map", prices: "Price Truth", guides: "Guides", nearby: "Nearby",
   sos: "SOS", report: "Report Scam", chat: "YatraBot", leaderboard: "Leaderboard", visit: "Submit Visit",
+  foodQuest: "Food Quest",
   tagline: "Travel India without getting scammed.",
   sub: "Real prices. Real guides. Real safety. Powered by AI + your community.",
   cta: "Explore the map", cta2: "Check real prices",

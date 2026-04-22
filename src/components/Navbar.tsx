@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import { Map, ShieldAlert, Sparkles, Users, MessageCircle, IndianRupee, Trophy, AlertTriangle, Camera, Globe, Plane } from "lucide-react";
+import { Map, ShieldAlert, Sparkles, Users, MessageCircle, IndianRupee, Trophy, AlertTriangle, Camera, Globe, Plane, UtensilsCrossed } from "lucide-react";
 import { Lang, t, LANGUAGES } from "@/lib/i18n";
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { to: "/report", icon: AlertTriangle, key: "report" },
   { to: "/sos", icon: ShieldAlert, key: "sos" },
   { to: "/leaderboard", icon: Trophy, key: "leaderboard" },
+  { to: "/food-quest", icon: UtensilsCrossed, key: "foodQuest" },
 ];
 
 export default function Navbar({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
