@@ -1,6 +1,9 @@
 import { Link, NavLink } from "react-router-dom";
-import { Map, ShieldAlert, Sparkles, Users, MessageCircle, IndianRupee, Trophy, AlertTriangle, Camera, Globe, Plane, UtensilsCrossed } from "lucide-react";
+import { Map, ShieldAlert, Sparkles, Users, MessageCircle, IndianRupee, Trophy, AlertTriangle, Camera, Globe } from "lucide-react";
 import { Lang, t, LANGUAGES } from "@/lib/i18n";
+import { useAuth } from "@/hooks/useAuth";
+import AuthDialog from "@/components/AuthDialog";
+import { useState } from "react";
 
 const navItems = [
   { to: "/", icon: Sparkles, key: "home" },
@@ -16,6 +19,8 @@ const navItems = [
 
 export default function Navbar({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
   const tt = t[lang];
+  const { user } = useAuth();
+  const [authOpen, setAuthOpen] = useState(false);
   return (
     <header className="sticky top-0 z-40 px-4 pt-4">
       <div className="container glass-strong flex items-center justify-between px-4 py-3 rounded-2xl gap-3">
@@ -63,8 +68,18 @@ export default function Navbar({ lang, setLang }: { lang: Lang; setLang: (l: Lan
             <MessageCircle className="w-4 h-4" />
             <span className="hidden sm:inline">{tt.chat}</span>
           </NavLink>
+          {user ? (
+            <NavLink to="/profile" className="w-9 h-9 rounded-full bg-gradient-sunset grid place-items-center text-white font-bold text-sm shadow-glow-pink shrink-0" title="Profile">
+              {(user.email || "U")[0].toUpperCase()}
+            </NavLink>
+          ) : (
+            <button onClick={() => setAuthOpen(true)} className="glass px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 hover:bg-white/15">
+              <UserIcon className="w-4 h-4" /> Sign in
+            </button>
+          )}
         </div>
       </div>
+      <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
     </header>
   );
 }
