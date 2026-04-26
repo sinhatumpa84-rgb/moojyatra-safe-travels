@@ -2,11 +2,17 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } 
 import L from "leaflet";
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+<<<<<<< HEAD
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldAlert, AlertTriangle, MapPin, Navigation, Search, Crosshair, Loader2, WifiOff, RefreshCw } from "lucide-react";
+=======
+import { ShieldAlert, Users, AlertTriangle, MapPin, Navigation, Search, Crosshair, UserCircle2 } from "lucide-react";
+>>>>>>> b9b5158210e73ece9500173959a33388bbe06cf1
 import { toast } from "sonner";
 import WeatherWidget from "@/components/WeatherWidget";
 import NewsFeed from "@/components/NewsFeed";
+import { usePresence } from "@/hooks/usePresence";
+import { useAuth } from "@/hooks/useAuth";
 
 import iconUrl from "leaflet/dist/images/marker-icon.png";
 import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
@@ -99,6 +105,7 @@ export default function MapPage() {
   const [selectedLabel, setSelectedLabel] = useState<string>("Delhi"); // Name of the selected point (pos)
   const [viewLabel, setViewLabel] = useState<string>("Delhi"); // Name of the current map center
   const [search, setSearch] = useState("");
+<<<<<<< HEAD
   const [filters, setFilters] = useState({ scam: true, cities: true });
   const [gpsLoading, setGpsLoading] = useState(false);
   const [showMobileLocModal, setShowMobileLocModal] = useState(false);
@@ -124,6 +131,11 @@ export default function MapPage() {
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
     );
   };
+=======
+  const [filters, setFilters] = useState({ scam: true, cities: true, travelers: true });
+  const { user } = useAuth();
+  const travelers = usePresence(pos, locationLabel, !!user);
+>>>>>>> b9b5158210e73ece9500173959a33388bbe06cf1
 
   useEffect(() => {
     supabase.from("scam_zones").select("*").then(({ data }) => setZones(data || []));
@@ -295,7 +307,11 @@ export default function MapPage() {
           <p className="text-sm text-muted-foreground">Showing Map Area: <b>{viewLabel}</b> · Click 📍 then tap map to search</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {([["scam", "Scam zones", AlertTriangle, "bg-destructive/20 text-destructive"], ["cities", "Cities", MapPin, "bg-primary/20 text-primary"]] as const).map(([k, lbl, Icon, cls]) => (
+          {([
+            ["scam", "Scam zones", AlertTriangle, "bg-destructive/20 text-destructive"],
+            ["cities", "Cities", MapPin, "bg-primary/20 text-primary"],
+            ["travelers", `Travelers (${travelers.length})`, UserCircle2, "bg-secondary/20 text-secondary"],
+          ] as const).map(([k, lbl, Icon, cls]) => (
             <button key={k} onClick={() => setFilters((f) => ({ ...f, [k]: !f[k as keyof typeof f] }))}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium glass ${filters[k as keyof typeof filters] ? cls : "opacity-50"}`}>
               <Icon className="w-4 h-4" /> {lbl}
@@ -444,19 +460,26 @@ export default function MapPage() {
             <Marker position={pos} icon={colorIcon("#FF6B81", "★")}>
               <Popup>Selected area: <b>{selectedLabel}</b></Popup>
             </Marker>
-            {filters.scam && zones.map((z) => (
-              <div key={z.id}>
-                <Circle center={[z.lat, z.lng]} radius={z.radius_m} pathOptions={{ color: riskColor(z.risk_level), fillOpacity: 0.2 }} />
-                <Marker position={[z.lat, z.lng]} icon={colorIcon(riskColor(z.risk_level), "!")}>
-                  <Popup>
-                    <strong>⚠️ {z.name}</strong><br />Risk: <b>{z.risk_level}</b><br />{z.description}
-                  </Popup>
-                </Marker>
-              </div>
-            ))}
+            {filters.scam && zones.flatMap((z) => [
+              <Circle key={`c-${z.id}`} center={[z.lat, z.lng]} radius={z.radius_m || 500} pathOptions={{ color: riskColor(z.risk_level), fillOpacity: 0.2 }} />,
+              <Marker key={`m-${z.id}`} position={[z.lat, z.lng]} icon={colorIcon(riskColor(z.risk_level), "!")}>
+                <Popup>
+                  <strong>⚠️ {z.name}</strong><br />Risk: <b>{z.risk_level}</b><br />{z.description}
+                </Popup>
+              </Marker>,
+            ])}
             {filters.cities && cities.map((c) => (
               <Marker key={c.id} position={[c.lat, c.lng]} icon={colorIcon("#9D4EDD")}>
                 <Popup><strong>📍 {c.name}</strong><br />{c.state}</Popup>
+              </Marker>
+            ))}
+            {filters.travelers && travelers.map((tr) => (
+              <Marker key={tr.user_id} position={[tr.lat, tr.lng]} icon={colorIcon("#4D96FF", "🧳")}>
+                <Popup>
+                  <strong>🧳 {tr.display_name || "Traveler"}</strong><br />
+                  {tr.city ? `Near ${tr.city}` : "Currently exploring"}<br />
+                  <span style={{fontSize:11,opacity:0.7}}>Last seen {new Date(tr.updated_at).toLocaleTimeString()}</span>
+                </Popup>
               </Marker>
             ))}
           </MapContainer>

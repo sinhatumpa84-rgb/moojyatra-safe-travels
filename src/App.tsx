@@ -14,7 +14,11 @@ import ReportPage from "./pages/ReportPage";
 import ChatPage from "./pages/ChatPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import VisitPage from "./pages/VisitPage";
+<<<<<<< HEAD
 import FoodQuestPage from "./pages/FoodQuestPage";
+=======
+import ProfilePage from "./pages/ProfilePage";
+>>>>>>> b9b5158210e73ece9500173959a33388bbe06cf1
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -37,7 +41,11 @@ const App = () => (
             <Route path="/report" element={<ReportPage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
+<<<<<<< HEAD
             <Route path="/food-quest" element={<FoodQuestPage />} />
+=======
+            <Route path="/profile" element={<ProfilePage />} />
+>>>>>>> b9b5158210e73ece9500173959a33388bbe06cf1
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
