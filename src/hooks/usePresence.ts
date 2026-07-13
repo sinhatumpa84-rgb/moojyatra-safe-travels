@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { auth } from "@/lib/firebase";
 
 export type PresenceRow = {
   user_id: string;
@@ -20,14 +21,14 @@ export function usePresence(pos: [number, number] | null, city: string | null, e
     if (!enabled || !pos) return;
     let cancelled = false;
     const push = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (!user || cancelled) return;
       const { data: profile } = await supabase
-        .from("profiles").select("display_name, avatar_url").eq("user_id", user.id).maybeSingle();
+        .from("profiles").select("display_name, avatar_url").eq("user_id", user.uid).maybeSingle();
       await supabase.from("user_presence").upsert({
-        user_id: user.id,
-        display_name: profile?.display_name ?? user.email?.split("@")[0] ?? "Traveler",
-        avatar_url: profile?.avatar_url ?? null,
+        user_id: user.uid,
+        display_name: profile?.display_name ?? user.displayName ?? user.email?.split("@")[0] ?? "Traveler",
+        avatar_url: profile?.avatar_url ?? user.photoURL ?? null,
         lat: pos[0], lng: pos[1], city,
         updated_at: new Date().toISOString(),
       });

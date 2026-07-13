@@ -58,7 +58,7 @@ export default function VisitPage() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("visited_places").select("id", { count: "exact", head: true }).eq("user_id", user.id)
+    supabase.from("visited_places").select("id", { count: "exact", head: true }).eq("user_id", user.uid)
       .then(({ count }) => setMyCount(count || 0));
   }, [user, done]);
 
@@ -72,7 +72,7 @@ export default function VisitPage() {
 
   async function uploadFile(file: File, folder: string): Promise<string> {
     const ext = file.name.split(".").pop() || "jpg";
-    const path = `${folder}/${user?.id || "anonymous"}/${Date.now()}.${ext}`;
+    const path = `${folder}/${user?.uid || "anonymous"}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("scam-evidence").upload(path, file, { upsert: false });
     if (error) throw error;
     return supabase.storage.from("scam-evidence").getPublicUrl(path).data.publicUrl;
@@ -99,27 +99,27 @@ export default function VisitPage() {
         points_awarded: points,
         badge_code: badgeCode,
       };
-      if (user?.id) submitData.user_id = user.id;
+      if (user?.uid) submitData.user_id = user.uid;
 
       const { error: insErr } = await supabase.from("visited_places").insert(submitData);
       if (insErr) throw insErr;
 
       // bump profile points and award badges ONLY if logged in
       if (user) {
-        const { data: prof } = await supabase.from("profiles").select("points").eq("user_id", user.id).maybeSingle();
+        const { data: prof } = await supabase.from("profiles").select("points").eq("user_id", user.uid).maybeSingle();
         const newPts = (prof?.points ?? 0) + points;
-        await supabase.from("profiles").update({ points: newPts }).eq("user_id", user.id);
+        await supabase.from("profiles").update({ points: newPts }).eq("user_id", user.uid);
 
         if (badgeCode) {
           const { data: badge } = await supabase.from("badges").select("id").eq("code", badgeCode).maybeSingle();
           if (badge?.id) {
-            await supabase.from("user_badges").insert({ user_id: user.id, badge_id: badge.id });
+            await supabase.from("user_badges").insert({ user_id: user.uid, badge_id: badge.id });
           }
         }
 
         if (myCount + 1 >= 10) {
           const { data: mega } = await supabase.from("badges").select("id").eq("code", "bharat_yatri").maybeSingle();
-          if (mega?.id) await supabase.from("user_badges").insert({ user_id: user.id, badge_id: mega.id });
+          if (mega?.id) await supabase.from("user_badges").insert({ user_id: user.uid, badge_id: mega.id });
         }
       }
 

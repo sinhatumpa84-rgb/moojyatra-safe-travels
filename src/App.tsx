@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LocationProvider } from "@/contexts/LocationContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import MapPage from "./pages/MapPage";
@@ -23,8 +24,9 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <LocationProvider>
-      <TooltipProvider>
+    <AuthProvider>
+      <LocationProvider>
+        <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -46,8 +48,9 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </TooltipProvider>
-    </LocationProvider>
+        </TooltipProvider>
+      </LocationProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

@@ -160,9 +160,9 @@ export default function NearbyPlacesPage() {
     );
 
     // Sync to backend if logged in
-    const { data: u } = await supabase.auth.getUser();
-    if (u?.user) {
-      await supabase.from("profiles").update({ points: newPoints }).eq("user_id", u.user.id);
+    const firebaseUser = (await import("@/lib/firebase")).auth.currentUser;
+    if (firebaseUser) {
+      await supabase.from("profiles").update({ points: newPoints }).eq("user_id", firebaseUser.uid);
     }
 
     setCheckInPlace(null);

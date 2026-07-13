@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getPremiumPercent, getPriceFallbackData, normalizePriceData } from "@/lib/priceData";
+import { loadCSVPriceData } from "@/lib/csvPriceLoader";
 import { motion } from "framer-motion";
-import { IndianRupee, TrendingUp, Flag, ShieldCheck } from "lucide-react";
+import { IndianRupee, TrendingUp, Flag, ShieldCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function PricesPage() {
@@ -11,16 +12,27 @@ export default function PricesPage() {
   const [cityId, setCityId] = useState<string | "all">("all");
   const [category, setCategory] = useState<string>("all");
   const [reportOpen, setReportOpen] = useState(false);
-  const [dataSource, setDataSource] = useState<"live" | "fallback">("live");
+  const [dataSource, setDataSource] = useState<"live" | "csv" | "fallback">("live");
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
+    setLoading(true);
     const hasSupabaseConfig = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
 
     if (!hasSupabaseConfig) {
-      const fallback = getPriceFallbackData();
-      setCities(fallback.cities);
-      setPrices(fallback.prices);
-      setDataSource("fallback");
+      // Try CSV first, then tiny hardcoded fallback
+      try {
+        const csv = await loadCSVPriceData();
+        setCities(csv.cities);
+        setPrices(csv.prices);
+        setDataSource("csv");
+      } catch {
+        const fallback = getPriceFallbackData();
+        setCities(fallback.cities);
+        setPrices(fallback.prices);
+        setDataSource("fallback");
+      }
+      setLoading(false);
       return;
     }
 
@@ -31,10 +43,19 @@ export default function PricesPage() {
       ]);
 
       if (c.error || p.error || !c.data?.length || !p.data?.length) {
-        const fallback = getPriceFallbackData();
-        setCities(fallback.cities);
-        setPrices(fallback.prices);
-        setDataSource("fallback");
+        // Supabase returned empty — use CSV seed
+        try {
+          const csv = await loadCSVPriceData();
+          setCities(csv.cities);
+          setPrices(csv.prices);
+          setDataSource("csv");
+        } catch {
+          const fallback = getPriceFallbackData();
+          setCities(fallback.cities);
+          setPrices(fallback.prices);
+          setDataSource("fallback");
+        }
+        setLoading(false);
         return;
       }
 
@@ -43,11 +64,19 @@ export default function PricesPage() {
       setPrices(data.prices);
       setDataSource("live");
     } catch {
-      const fallback = getPriceFallbackData();
-      setCities(fallback.cities);
-      setPrices(fallback.prices);
-      setDataSource("fallback");
+      try {
+        const csv = await loadCSVPriceData();
+        setCities(csv.cities);
+        setPrices(csv.prices);
+        setDataSource("csv");
+      } catch {
+        const fallback = getPriceFallbackData();
+        setCities(fallback.cities);
+        setPrices(fallback.prices);
+        setDataSource("fallback");
+      }
     }
+    setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
@@ -57,12 +86,26 @@ export default function PricesPage() {
 
   const categories = ["all", ...Array.from(new Set(prices.map((p) => p.category)))];
 
+  if (loading) {
+    return (
+      <div className="container px-4 py-6 flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-muted-foreground text-sm">Loading price database…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="container px-4 py-6">
       <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
         <div>
           <h1 className="text-4xl font-bold flex items-center gap-2"><IndianRupee className="text-primary" /> Price Truth Database</h1>
           <p className="text-muted-foreground mt-1">Local · Tourist · Official · scam premium %</p>
+          {dataSource === "csv" && (
+            <div className="mt-2 inline-flex rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs text-blue-400">
+              {prices.length.toLocaleString()} records · {cities.length} cities · 28 states — seed database
+            </div>
+          )}
           {dataSource === "fallback" && (
             <div className="mt-2 inline-flex rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-600">
               Showing seeded demo prices while the live database is unavailable.

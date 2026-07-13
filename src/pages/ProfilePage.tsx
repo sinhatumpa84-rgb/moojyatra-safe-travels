@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { updateProfile } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { supabase } from "@/integrations/supabase/client";
 import AuthDialog from "@/components/AuthDialog";
 import { Button } from "@/components/ui/button";
@@ -30,20 +32,25 @@ export default function ProfilePage() {
 
   const loadAll = async () => {
     if (!user) return;
+    // Firebase uses uid; Supabase tables still store user_id = firebase uid
+    const uid = user.uid;
     const [{ data: p }, { data: ub }, { data: ab }, { data: v }] = await Promise.all([
-      supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase.from("user_badges").select("*, badges(*)").eq("user_id", user.id),
+      supabase.from("profiles").select("*").eq("user_id", uid).maybeSingle(),
+      supabase.from("user_badges").select("*, badges(*)").eq("user_id", uid),
       supabase.from("badges").select("*"),
-      supabase.from("visited_places").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("visited_places").select("*").eq("user_id", uid).order("created_at", { ascending: false }),
     ]);
-    setProfile(p); setName(p?.display_name ?? "");
+    setProfile(p); setName(p?.display_name ?? user.displayName ?? "");
     setBadges(ub || []); setAllBadges(ab || []); setVisits(v || []);
   };
 
   const saveName = async () => {
     if (!user) return;
-    const { error } = await supabase.from("profiles").update({ display_name: name }).eq("user_id", user.id);
-    if (error) return toast.error(error.message);
+    // Update Firebase display name
+    await updateProfile(auth.currentUser!, { displayName: name });
+    // Also persist to Supabase profile if it exists
+    const { error } = await supabase.from("profiles").update({ display_name: name }).eq("user_id", user.uid);
+    if (error && error.code !== "PGRST116") return toast.error(error.message);
     toast.success("Name updated"); setEditName(false); loadAll();
   };
 
@@ -51,7 +58,7 @@ export default function ProfilePage() {
     if (!confirm("Delete this visit? You'll lose the points.")) return;
     const { error } = await supabase.from("visited_places").delete().eq("id", id);
     if (error) return toast.error(error.message);
-    if (profile) await supabase.from("profiles").update({ points: Math.max(0, (profile.points || 0) - points) }).eq("user_id", user!.id);
+    if (profile) await supabase.from("profiles").update({ points: Math.max(0, (profile.points || 0) - points) }).eq("user_id", user!.uid);
     toast.success("Deleted"); loadAll();
   };
 
@@ -77,8 +84,11 @@ export default function ProfilePage() {
   return (
     <div className="container px-4 py-6 space-y-6">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-strong p-6 flex flex-col md:flex-row md:items-center gap-4">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-sunset grid place-items-center text-3xl font-black text-white shadow-glow-pink">
-          {(profile?.display_name || user.email || "U")[0].toUpperCase()}
+        <div className="w-20 h-20 rounded-2xl bg-gradient-sunset grid place-items-center text-3xl font-black text-white shadow-glow-pink overflow-hidden">
+          {user.photoURL
+            ? <img src={user.photoURL} alt="avatar" className="w-full h-full object-cover" />
+            : (profile?.display_name || user.displayName || user.email || "U")[0].toUpperCase()
+          }
         </div>
         <div className="flex-1 min-w-0">
           {editName ? (
@@ -89,7 +99,7 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-extrabold">{profile?.display_name ?? "Traveler"}</h1>
+              <h1 className="text-2xl font-extrabold">{profile?.display_name ?? user.displayName ?? "Traveler"}</h1>
               <button onClick={() => setEditName(true)} className="text-muted-foreground hover:text-foreground"><Pencil className="w-4 h-4" /></button>
             </div>
           )}
