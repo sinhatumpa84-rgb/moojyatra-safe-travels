@@ -2,17 +2,14 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } 
 import L from "leaflet";
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-<<<<<<< HEAD
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldAlert, AlertTriangle, MapPin, Navigation, Search, Crosshair, Loader2, WifiOff, RefreshCw } from "lucide-react";
-=======
-import { ShieldAlert, Users, AlertTriangle, MapPin, Navigation, Search, Crosshair, UserCircle2 } from "lucide-react";
->>>>>>> b9b5158210e73ece9500173959a33388bbe06cf1
+import { ShieldAlert, AlertTriangle, MapPin, Navigation, Search, Crosshair, Loader2, WifiOff, RefreshCw, UserCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import WeatherWidget from "@/components/WeatherWidget";
 import NewsFeed from "@/components/NewsFeed";
 import { usePresence } from "@/hooks/usePresence";
 import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "@/contexts/LocationContext";
 
 import iconUrl from "leaflet/dist/images/marker-icon.png";
 import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
@@ -94,6 +91,15 @@ function MapEventsListener({
 }
 
 export default function MapPage() {
+  const { 
+    searchedLocation, 
+    isSearching, 
+    searchError, 
+    searchLocation, 
+    setSearchedLocation, 
+    clearError 
+  } = useLocation();
+
   const [zones, setZones] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
   const [pos, setPos] = useState<[number, number]>([28.6139, 77.2090]); // Selected point
@@ -105,12 +111,15 @@ export default function MapPage() {
   const [selectedLabel, setSelectedLabel] = useState<string>("Delhi"); // Name of the selected point (pos)
   const [viewLabel, setViewLabel] = useState<string>("Delhi"); // Name of the current map center
   const [search, setSearch] = useState("");
-<<<<<<< HEAD
-  const [filters, setFilters] = useState({ scam: true, cities: true });
+
+  const [filters, setFilters] = useState({ scam: true, cities: true, travelers: true });
   const [gpsLoading, setGpsLoading] = useState(false);
   const [showMobileLocModal, setShowMobileLocModal] = useState(false);
   // 1. GPS feature: track explicit permission denial so we can show a rich UI
   const [gpsError, setGpsError] = useState<"denied" | "unavailable" | null>(null);
+
+  const { user } = useAuth();
+  const travelers = usePresence(pos, selectedLabel, !!user);
 
   // use a ref to hold watchId so we can manage it
   const watchIdRef = useRef<number | null>(null);
@@ -131,11 +140,6 @@ export default function MapPage() {
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
     );
   };
-=======
-  const [filters, setFilters] = useState({ scam: true, cities: true, travelers: true });
-  const { user } = useAuth();
-  const travelers = usePresence(pos, locationLabel, !!user);
->>>>>>> b9b5158210e73ece9500173959a33388bbe06cf1
 
   useEffect(() => {
     supabase.from("scam_zones").select("*").then(({ data }) => setZones(data || []));
@@ -175,16 +179,14 @@ export default function MapPage() {
     };
   }, []);
 
-  // Reverse geocode for the Selected Pin (pos)
+  // Sync pos and selectedLabel with global searchedLocation when it updates
   useEffect(() => {
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos[0]}&lon=${pos[1]}&zoom=10`)
-      .then((r) => r.json())
-      .then((d) => {
-        const a = d?.address || {};
-        setSelectedLabel(a.city || a.town || a.village || a.state || "this area");
-      })
-      .catch(() => {});
-  }, [pos]);
+    if (searchedLocation) {
+      setPos([searchedLocation.lat, searchedLocation.lng]);
+      setSelectedLabel(searchedLocation.name);
+      setMapCenter([searchedLocation.lat, searchedLocation.lng]);
+    }
+  }, [searchedLocation]);
 
   // Reverse geocode for the View Center (mapCenter)
   useEffect(() => {
@@ -206,29 +208,52 @@ export default function MapPage() {
     return zones.filter((z) => mapBounds.contains([z.lat, z.lng]));
   }, [zones, mapBounds]);
 
-  const onPickPin = (p: [number, number]) => {
+  const onPickPin = async (p: [number, number]) => {
     if (!pinMode) return;
     setPos(p);
     setPinMode(false);
     toast.success("📍 Checked area updated");
+
+    // Reverse geocode manual pin to update global searchedLocation
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p[0]}&lon=${p[1]}&zoom=10`);
+      const d = await r.json();
+      const a = d?.address || {};
+      const name = a.city || a.town || a.village || a.state || "this area";
+      setSearchedLocation({
+        name,
+        lat: p[0],
+        lng: p[1],
+        isSearched: true
+      });
+    } catch {
+      setSearchedLocation({
+        name: "Pinned Location",
+        lat: p[0],
+        lng: p[1],
+        isSearched: true
+      });
+    }
   };
 
   const doSearch = async () => {
     if (!search.trim()) return;
-    try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(search + ", India")}&limit=1`);
-      const d = await r.json();
-      if (d?.[0]) { setPos([Number(d[0].lat), Number(d[0].lon)]); toast.success(`Loaded ${d[0].display_name.split(",")[0]}`); }
-      else toast.error("Not found");
-    } catch { toast.error("Search failed"); }
+    await searchLocation(search);
   };
 
   // 1. Mobile Geolocation implementation with rich error state
   const handleGPS = () => {
     // If we're already tracking them, just instantly fly there without reloading
     if (userLocation) {
-      setPos([userLocation.lat, userLocation.lng]);
+      const livePos: [number, number] = [userLocation.lat, userLocation.lng];
+      setPos(livePos);
       toast.success("📍 Recentered to your live location");
+      setSearchedLocation({
+        name: "My Location",
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+        isSearched: true
+      });
       return;
     }
 
@@ -239,7 +264,7 @@ export default function MapPage() {
     setGpsLoading(true);
     setGpsError(null);
     navigator.geolocation.getCurrentPosition(
-      (p) => {
+      async (p) => {
         const newLoc = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy };
         setUserLocation(newLoc);
         setPos([p.coords.latitude, p.coords.longitude]);
@@ -248,6 +273,27 @@ export default function MapPage() {
         // Also start continuous tracking now that we have permission
         startTracking();
         toast.success("📍 Located your live position");
+
+        // Reverse geocode to find name for global context
+        try {
+          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}&zoom=10`);
+          const d = await r.json();
+          const a = d?.address || {};
+          const name = a.city || a.town || a.village || a.state || "My Location";
+          setSearchedLocation({
+            name,
+            lat: p.coords.latitude,
+            lng: p.coords.longitude,
+            isSearched: true
+          });
+        } catch {
+          setSearchedLocation({
+            name: "My Location",
+            lat: p.coords.latitude,
+            lng: p.coords.longitude,
+            isSearched: true
+          });
+        }
       },
       (error) => {
         setGpsLoading(false);
@@ -488,7 +534,7 @@ export default function MapPage() {
 
         <aside className="space-y-4">
           {/* Ensure Weather explicitly targets the locked red pin (Live or Searched) */}
-          <WeatherWidget lat={pos[0]} lng={pos[1]} label={selectedLabel} />
+          <WeatherWidget lat={pos[0]} lng={pos[1]} label={searchedLocation?.name || selectedLabel} />
           
           <div className="glass-strong p-5">
             <h3 className="font-bold mb-3 flex items-center gap-2"><ShieldAlert className="text-destructive w-4 h-4" /> Scam zones nearby</h3>
@@ -509,9 +555,9 @@ export default function MapPage() {
       </div>
 
       <div className="mt-6">
-        {/* 2. Dynamic Area Reports: NewsFeed follows the live MAP VIEW (viewLabel),
-            not the static selected pin, so it refreshes as the user pans around */}
-        <NewsFeed city={viewLabel} />
+        {/* 2. Dynamic Area Reports: NewsFeed follows the global searchedLocation name,
+            falling back to map view (viewLabel) to ensure absolute search alignment */}
+        <NewsFeed city={searchedLocation?.name || viewLabel} />
       </div>
     </div>
   );

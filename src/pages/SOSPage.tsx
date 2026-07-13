@@ -208,7 +208,7 @@ export default function SOSPage() {
                     <span className="text-xl">{e.flag}</span>
                     <div className="min-w-0">
                       <div className="font-semibold text-sm truncate">{e.country}</div>
-                      <div className="text-[10px] text-muted-foreground">{e.city || "New Delhi"}</div>
+                      <div className="text-[10px] text-muted-foreground">{e.city || "India (HQ)"}</div>
                     </div>
                   </div>
                   <button onClick={() => saveMyEmbassy(e.country)}

@@ -4,6 +4,7 @@ import { MapPin, Sparkles, Camera, Trophy, Loader2, Navigation, Star, Upload, X,
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import confetti from "canvas-confetti";
+import { useLocation } from "@/contexts/LocationContext";
 
 type Place = {
   id: string;
@@ -30,7 +31,11 @@ function distM(a: [number, number], b: [number, number]) {
 }
 
 export default function NearbyPlacesPage() {
-  const [pos, setPos] = useState<[number, number]>([28.6139, 77.2090]);
+  const { searchedLocation, isSearching, searchLocation } = useLocation();
+  const pos: [number, number] = searchedLocation 
+    ? [searchedLocation.lat, searchedLocation.lng] 
+    : [28.6139, 77.2090];
+
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(false);
   const [city, setCity] = useState("");
@@ -44,16 +49,6 @@ export default function NearbyPlacesPage() {
   const [checkInPlace, setCheckInPlace] = useState<Place | null>(null);
   const [photoBlob, setPhotoBlob] = useState<string | null>(null);
   const [review, setReview] = useState("");
-
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.watchPosition(
-        (p) => setPos([p.coords.latitude, p.coords.longitude]),
-        () => {},
-        { enableHighAccuracy: true, timeout: 5000 }
-      );
-    }
-  }, []);
 
   const fetchNearby = async (lat: number, lng: number) => {
     setLoading(true);
@@ -111,14 +106,13 @@ export default function NearbyPlacesPage() {
 
   const searchCity = async () => {
     if (!city.trim()) return;
-    try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", India")}&limit=1`);
-      const d = await r.json();
-      if (d?.[0]) {
-        setPos([Number(d[0].lat), Number(d[0].lon)]);
-        toast.success(`Scanning places around ${d[0].display_name.split(",")[0]}`);
-      } else toast.error("City not found");
-    } catch { toast.error("Search failed"); }
+    
+    const result = await searchLocation(city);
+    
+    if (result) {
+      setCity("");
+      toast.success(`Scanning places around ${result.name}`);
+    }
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

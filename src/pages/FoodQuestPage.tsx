@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, MapPin, Camera, Award, Trophy, BookOpen, Flame } from "lucide-react";
+import { useLocation } from "@/contexts/LocationContext";
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
@@ -190,10 +191,52 @@ function XPBar({ xp }: { xp: number }) {
 
 // ─── Home Screen ───────────────────────────────────────────────────────────────
 
-function HomeScreen({ xp, completedIds, earnedBadges, streak, onSelectState, onNav }:
+function distKM(a: [number, number], b: [number, number]) {
+  const dLat = a[0] - b[0];
+  const dLng = a[1] - b[1];
+  return Math.sqrt(dLat * dLat + dLng * dLng) * 111;
+}
+
+function HomeScreen({ xp, completedIds, earnedBadges, streak, onSelectState, onNav, searchedLocation }:
   { xp: number; completedIds: Set<string>; earnedBadges: Badge[]; streak: number;
-    onSelectState: (s: State) => void; onNav: (s: Screen) => void }) {
+    onSelectState: (s: State) => void; onNav: (s: Screen) => void; searchedLocation: any }) {
   const total = STATES.reduce((s, st) => s + st.challenges.length, 0);
+
+  // Map searched location to closest Indian state in challenges database
+  const nearestState = (() => {
+    if (!searchedLocation) return null;
+    const STATE_COORDINATES: Record<string, [number, number]> = {
+      wb: [22.5726, 88.3639],
+      pj: [31.6200, 74.8765],
+      rj: [26.9124, 75.7873],
+      mh: [19.0760, 72.8777],
+      tn: [13.0827, 80.2707],
+      kl: [9.9312, 76.2673],
+      gj: [23.0225, 72.5714],
+      goa: [15.2993, 74.1240],
+      ka: [12.9716, 77.5946],
+      ts: [17.3850, 78.4867],
+      as: [26.1445, 91.7362],
+      up: [26.8467, 80.9462],
+      mp: [23.2599, 77.4126],
+      hp: [32.2396, 77.1887],
+      od: [19.8134, 85.8312]
+    };
+
+    let nearestId = "wb";
+    let minDist = Infinity;
+
+    for (const [id, coords] of Object.entries(STATE_COORDINATES)) {
+      const d = distKM([searchedLocation.lat, searchedLocation.lng], coords);
+      if (d < minDist) {
+        minDist = d;
+        nearestId = id;
+      }
+    }
+
+    return STATES.find(s => s.id === nearestId) || null;
+  })();
+
   return (
     <div className="container px-4 py-6 space-y-6">
       {/* Page header */}
@@ -229,6 +272,36 @@ function HomeScreen({ xp, completedIds, earnedBadges, streak, onSelectState, onN
           ))}
         </div>
       </motion.div>
+
+      {/* Premium Food Quest Suggestion Banner */}
+      {nearestState && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass-strong p-5 rounded-2xl border-2 border-orange-500/35 relative overflow-hidden shadow-glow-pink"
+        >
+          {/* Decorative background gradient */}
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-yellow-500/5 -z-10 pointer-events-none" />
+          <div className="flex items-center gap-4">
+            <span className="text-4xl sm:text-5xl shrink-0 filter drop-shadow-md">{nearestState.emoji}</span>
+            <div className="flex-1 min-w-0">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-orange-500/25 text-orange-400 border border-orange-500/30 mb-1.5">
+                📍 Nearby State Match
+              </span>
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-1.5 truncate">
+                Explore <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-400 font-extrabold">{nearestState.name}</span> Challenges!
+              </h2>
+              <p className="text-xs text-white/60 line-clamp-1 mt-0.5 font-medium">{nearestState.tagline}</p>
+            </div>
+            <button 
+              onClick={() => onSelectState(nearestState)}
+              className="bg-gradient-sunset text-white font-extrabold px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm hover:scale-[1.03] transition duration-200 cursor-pointer shadow-md select-none shrink-0"
+            >
+              Start →
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* State grid */}
       <div>
@@ -611,6 +684,7 @@ export default function FoodQuestPage() {
   const [photo, setPhoto]         = useState<string | null>(null);
   const [result, setResult]       = useState<Result | null>(null);
   const fileRef                   = useRef<HTMLInputElement>(null);
+  const { searchedLocation }      = useLocation();
 
   const handleGPS = () => {
     if (gpsOk) return;
@@ -695,7 +769,8 @@ If no:  {"verified":false,"message":"Friendly note on what went wrong and what t
         {screen === "home" && (
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <HomeScreen xp={xp} completedIds={completedIds} earnedBadges={badges}
-              streak={streak} onSelectState={st => { setSelState(st); setScreen("state"); }} onNav={navTo} />
+              streak={streak} onSelectState={st => { setSelState(st); setScreen("state"); }} onNav={navTo}
+              searchedLocation={searchedLocation} />
           </motion.div>
         )}
         {screen === "state" && selState && (

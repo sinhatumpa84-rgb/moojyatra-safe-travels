@@ -1,0 +1,140 @@
+city_id,city_name,state_id,tier,is_coastal
+1,Visakhapatnam,1,Coastal,1
+2,Vijayawada,1,Coastal,1
+3,Tirupati,1,Tier-1,1
+4,Guntur,1,Metro,0
+5,Rajahmundry,1,Pilgrimage,1
+6,Kakinada,1,Hill Station,1
+7,Itanagar,2,Metro,0
+8,Tawang,2,Tier-1,0
+9,Ziro,2,Tier-1,0
+10,Guwahati,3,Pilgrimage,0
+11,Dibrugarh,3,Pilgrimage,0
+12,Jorhat,3,Metro,0
+13,Kaziranga,3,Pilgrimage,0
+14,Silchar,3,Tier-1,0
+15,Patna,4,Coastal,0
+16,Gaya,4,Coastal,0
+17,Bodh Gaya,4,Coastal,0
+18,Nalanda,4,Pilgrimage,0
+19,Rajgir,4,Hill Station,0
+20,Raipur,5,Tier-1,0
+21,Bilaspur,5,Hill Station,0
+22,Jagdalpur,5,Pilgrimage,0
+23,Panaji,6,Tier-2,0
+24,Margao,6,Metro,0
+25,Vasco da Gama,6,Tier-1,0
+26,Calangute,6,Tier-2,1
+27,Anjuna,6,Tier-1,0
+28,Ahmedabad,7,Tier-2,1
+29,Surat,7,Hill Station,1
+30,Vadodara,7,Tier-2,0
+31,Rajkot,7,Metro,0
+32,Dwarka,7,Pilgrimage,1
+33,Somnath,7,Hill Station,1
+34,Gir,7,Tier-2,0
+35,Gurugram,8,Pilgrimage,0
+36,Faridabad,8,Tier-2,0
+37,Kurukshetra,8,Pilgrimage,0
+38,Panipat,8,Tier-1,0
+39,Shimla,9,Coastal,0
+40,Manali,9,Metro,0
+41,Dharamshala,9,Metro,0
+42,Kullu,9,Coastal,0
+43,Spiti,9,Tier-1,0
+44,Dalhousie,9,Tier-2,0
+45,Ranchi,10,Metro,0
+46,Jamshedpur,10,Tier-1,0
+47,Deoghar,10,Metro,0
+48,Bengaluru,11,Hill Station,1
+49,Mysuru,11,Coastal,0
+50,Hampi,11,Tier-1,1
+51,Mangaluru,11,Tier-1,0
+52,Coorg,11,Coastal,0
+53,Udupi,11,Coastal,1
+54,Hubballi,11,Coastal,1
+55,Kochi,12,Coastal,1
+56,Thiruvananthapuram,12,Hill Station,1
+57,Munnar,12,Coastal,0
+58,Alleppey,12,Tier-1,0
+59,Kozhikode,12,Metro,1
+60,Wayanad,12,Metro,0
+61,Kovalam,12,Hill Station,1
+62,Bhopal,13,Tier-1,0
+63,Indore,13,Pilgrimage,0
+64,Khajuraho,13,Coastal,0
+65,Gwalior,13,Tier-2,0
+66,Ujjain,13,Tier-1,0
+67,Pachmarhi,13,Coastal,0
+68,Orchha,13,Hill Station,0
+69,Mumbai,14,Hill Station,0
+70,Pune,14,Coastal,0
+71,Nagpur,14,Tier-2,1
+72,Nashik,14,Coastal,0
+73,Aurangabad,14,Tier-2,0
+74,Lonavala,14,Hill Station,0
+75,Mahabaleshwar,14,Hill Station,1
+76,Alibaug,14,Tier-1,0
+77,Imphal,15,Metro,0
+78,Moirang,15,Metro,0
+79,Shillong,16,Metro,0
+80,Cherrapunji,16,Tier-1,0
+81,Mawlynnong,16,Coastal,0
+82,Aizawl,17,Tier-1,0
+83,Champhai,17,Coastal,0
+84,Kohima,18,Hill Station,0
+85,Dimapur,18,Pilgrimage,0
+86,Bhubaneswar,19,Metro,1
+87,Puri,19,Pilgrimage,0
+88,Konark,19,Pilgrimage,1
+89,Cuttack,19,Pilgrimage,0
+90,Chilika,19,Metro,0
+91,Amritsar,20,Metro,0
+92,Chandigarh,20,Coastal,0
+93,Ludhiana,20,Pilgrimage,0
+94,Patiala,20,Tier-2,0
+95,Jaipur,21,Coastal,0
+96,Udaipur,21,Tier-2,0
+97,Jodhpur,21,Metro,0
+98,Jaisalmer,21,Tier-2,0
+99,Pushkar,21,Hill Station,0
+100,Mount Abu,21,Tier-1,0
+101,Bikaner,21,Hill Station,0
+102,Ajmer,21,Metro,0
+103,Gangtok,22,Coastal,0
+104,Pelling,22,Coastal,0
+105,Lachung,22,Tier-2,0
+106,Chennai,23,Pilgrimage,0
+107,Madurai,23,Pilgrimage,0
+108,Coimbatore,23,Coastal,1
+109,Ooty,23,Coastal,0
+110,Kanyakumari,23,Tier-1,1
+111,Rameswaram,23,Tier-1,0
+112,Mahabalipuram,23,Pilgrimage,0
+113,Thanjavur,23,Pilgrimage,1
+114,Hyderabad,24,Metro,0
+115,Warangal,24,Metro,0
+116,Nizamabad,24,Tier-2,0
+117,Agartala,25,Tier-2,0
+118,Udaipur (Tripura),25,Tier-1,0
+119,Lucknow,26,Metro,0
+120,Agra,26,Tier-1,0
+121,Varanasi,26,Pilgrimage,0
+122,Mathura,26,Metro,0
+123,Ayodhya,26,Metro,0
+124,Prayagraj,26,Coastal,0
+125,Kanpur,26,Hill Station,0
+126,Noida,26,Metro,0
+127,Dehradun,27,Pilgrimage,0
+128,Rishikesh,27,Tier-1,0
+129,Haridwar,27,Tier-1,0
+130,Nainital,27,Coastal,0
+131,Mussoorie,27,Hill Station,0
+132,Auli,27,Pilgrimage,0
+133,Jim Corbett,27,Tier-1,0
+134,Kolkata,28,Tier-2,0
+135,Darjeeling,28,Pilgrimage,0
+136,Digha,28,Tier-1,0
+137,Siliguri,28,Coastal,0
+138,Shantiniketan,28,Coastal,1
+139,Kalimpong,28,Coastal,0

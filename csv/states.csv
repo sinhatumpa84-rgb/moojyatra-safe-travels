@@ -1,0 +1,29 @@
+state_id,state_name,region
+1,Andhra Pradesh,South
+2,Arunachal Pradesh,Northeast
+3,Assam,Northeast
+4,Bihar,East
+5,Chhattisgarh,Central
+6,Goa,West
+7,Gujarat,West
+8,Haryana,North
+9,Himachal Pradesh,North
+10,Jharkhand,East
+11,Karnataka,South
+12,Kerala,South
+13,Madhya Pradesh,Central
+14,Maharashtra,West
+15,Manipur,Northeast
+16,Meghalaya,Northeast
+17,Mizoram,Northeast
+18,Nagaland,Northeast
+19,Odisha,East
+20,Punjab,North
+21,Rajasthan,North
+22,Sikkim,Northeast
+23,Tamil Nadu,South
+24,Telangana,South
+25,Tripura,Northeast
+26,Uttar Pradesh,North
+27,Uttarakhand,North
+28,West Bengal,East

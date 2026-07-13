@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { CloudSun, Wind, Droplets } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { CloudSun, Wind, Droplets, AlertCircle } from "lucide-react";
 
 const WMO: Record<number, string> = {
   0: "Clear ☀️", 1: "Mostly clear 🌤", 2: "Partly cloudy ⛅", 3: "Overcast ☁️",
@@ -10,12 +10,83 @@ const WMO: Record<number, string> = {
 
 export default function WeatherWidget({ lat, lng, label }: { lat: number; lng: number; label?: string }) {
   const [w, setW] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
-    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m,apparent_temperature&daily=temperature_2m_max,temperature_2m_min,weather_code&forecast_days=4&timezone=auto`)
-      .then((r) => r.json()).then(setW).catch(() => {});
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
+    
+    setLoading(true);
+    setError(null);
+    setW(null);
+
+    fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m,apparent_temperature&daily=temperature_2m_max,temperature_2m_min,weather_code&forecast_days=4&timezone=auto`,
+      { signal: abortControllerRef.current.signal }
+    )
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch weather");
+        return r.json();
+      })
+      .then((data) => {
+        setW(data);
+        setError(null);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setError("Could not load weather data");
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [lat, lng]);
 
-  if (!w?.current) return <div className="glass-strong p-5 text-sm text-muted-foreground">Loading weather…</div>;
+  if (loading) {
+    return (
+      <div className="glass-strong p-5 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 mb-3">
+          <CloudSun className="w-5 h-5 animate-pulse" />
+          <span>Loading weather…</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="glass-strong p-5 border border-destructive/30">
+        <div className="flex items-center gap-2 text-destructive text-sm">
+          <AlertCircle className="w-4 h-4" />
+          <span>{error}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!w?.current) {
+    return (
+      <div className="glass-strong p-5 border border-amber-500/30">
+        <div className="flex items-center gap-2 text-amber-600 text-sm">
+          <AlertCircle className="w-4 h-4" />
+          <span>Weather data unavailable</span>
+        </div>
+      </div>
+    );
+  }
 
   const c = w.current;
   return (

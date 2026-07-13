@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { getPremiumPercent, getPriceFallbackData, normalizePriceData } from "@/lib/priceData";
 import { motion } from "framer-motion";
 import { IndianRupee, TrendingUp, Flag, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -10,14 +11,43 @@ export default function PricesPage() {
   const [cityId, setCityId] = useState<string | "all">("all");
   const [category, setCategory] = useState<string>("all");
   const [reportOpen, setReportOpen] = useState(false);
+  const [dataSource, setDataSource] = useState<"live" | "fallback">("live");
 
   const load = async () => {
-    const [c, p] = await Promise.all([
-      supabase.from("cities").select("*").order("name"),
-      supabase.from("prices").select("*, cities(name)"),
-    ]);
-    setCities(c.data || []);
-    setPrices(p.data || []);
+    const hasSupabaseConfig = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+
+    if (!hasSupabaseConfig) {
+      const fallback = getPriceFallbackData();
+      setCities(fallback.cities);
+      setPrices(fallback.prices);
+      setDataSource("fallback");
+      return;
+    }
+
+    try {
+      const [c, p] = await Promise.all([
+        supabase.from("cities").select("*").order("name"),
+        supabase.from("prices").select("*, cities(name)"),
+      ]);
+
+      if (c.error || p.error || !c.data?.length || !p.data?.length) {
+        const fallback = getPriceFallbackData();
+        setCities(fallback.cities);
+        setPrices(fallback.prices);
+        setDataSource("fallback");
+        return;
+      }
+
+      const data = normalizePriceData(c.data || [], p.data || []);
+      setCities(data.cities);
+      setPrices(data.prices);
+      setDataSource("live");
+    } catch {
+      const fallback = getPriceFallbackData();
+      setCities(fallback.cities);
+      setPrices(fallback.prices);
+      setDataSource("fallback");
+    }
   };
   useEffect(() => { load(); }, []);
 
@@ -33,6 +63,11 @@ export default function PricesPage() {
         <div>
           <h1 className="text-4xl font-bold flex items-center gap-2"><IndianRupee className="text-primary" /> Price Truth Database</h1>
           <p className="text-muted-foreground mt-1">Local · Tourist · Official · scam premium %</p>
+          {dataSource === "fallback" && (
+            <div className="mt-2 inline-flex rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-600">
+              Showing seeded demo prices while the live database is unavailable.
+            </div>
+          )}
         </div>
         <div className="flex gap-2 flex-wrap">
           <select value={cityId} onChange={(e) => setCityId(e.target.value)} className="glass px-3 py-2 text-sm bg-transparent">
@@ -50,7 +85,7 @@ export default function PricesPage() {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((p, i) => {
-          const premium = ((p.tourist_price - p.local_price) / p.local_price) * 100;
+          const premium = getPremiumPercent({ local_price: p.local_price, tourist_price: p.tourist_price });
           const high = premium > 200;
           return (
             <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}
