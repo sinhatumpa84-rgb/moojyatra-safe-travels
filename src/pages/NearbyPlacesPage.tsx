@@ -1,10 +1,11 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Sparkles, Camera, Trophy, Loader2, Navigation, Star, Upload, X, MapPinOff } from "lucide-react";
+import { MapPin, Sparkles, Camera, Trophy, Loader2, Navigation, Star, Upload, X, MapPinOff, Bot, Filter, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import confetti from "canvas-confetti";
 import { useLocation } from "@/contexts/LocationContext";
+import { interpretSearchQuery, SearchIntentResponse } from "@/lib/groq/aiService";
 
 type Place = {
   id: string;
@@ -114,6 +115,75 @@ export default function NearbyPlacesPage() {
       toast.success(`Scanning places around ${result.name}`);
     }
   };
+
+  // Groq AI Smart Search
+  const [aiQuery, setAiQuery] = useState("");
+  const [aiSearching, setAiSearching] = useState(false);
+  const [aiIntent, setAiIntent] = useState<SearchIntentResponse | null>(null);
+
+  const handleAiSearch = async () => {
+    if (!aiQuery.trim() || aiSearching) return;
+    setAiSearching(true);
+    try {
+      const intent = await interpretSearchQuery(aiQuery);
+      setAiIntent(intent);
+
+      if (intent.destination && intent.destination.toLowerCase() !== searchedLocation?.name?.toLowerCase()) {
+        const res = await searchLocation(intent.destination);
+        if (res) {
+          toast.success(`Groq AI scanned destination: ${res.name}`);
+        }
+      } else {
+        toast.success(`Groq AI: ${intent.interpreted_query || intent.category || "matched places"}`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to interpret search with AI.");
+    } finally {
+      setAiSearching(false);
+    }
+  };
+
+  const clearAiFilter = () => {
+    setAiIntent(null);
+    setAiQuery("");
+  };
+
+  // Rank real OpenStreetMap places based on Groq's extracted search intent without hallucinating
+  const displayedPlaces = useMemo(() => {
+    if (!aiIntent) return places;
+
+    const keywords = (aiIntent.keywords || []).map((k) => k.toLowerCase());
+    const category = (aiIntent.category || "").toLowerCase();
+    const interests = (aiIntent.interests || []).map((i) => i.toLowerCase());
+
+    const scored = places.map((p) => {
+      let score = 0;
+      const nameLower = p.name.toLowerCase();
+      const typeLower = (p.type || "").toLowerCase();
+      const wikiLower = (p.wiki?.extract || "").toLowerCase();
+
+      if (category && (typeLower.includes(category) || wikiLower.includes(category) || nameLower.includes(category))) {
+        score += 3;
+      }
+      for (const kw of keywords) {
+        if (nameLower.includes(kw) || typeLower.includes(kw) || wikiLower.includes(kw)) {
+          score += 2;
+        }
+      }
+      for (const int of interests) {
+        if (nameLower.includes(int) || typeLower.includes(int) || wikiLower.includes(int)) {
+          score += 1.5;
+        }
+      }
+      return { place: p, score };
+    });
+
+    const hasMatches = scored.some((s) => s.score > 0);
+    if (hasMatches) {
+      return scored.sort((a, b) => b.score - a.score).map((s) => s.place);
+    }
+    return places;
+  }, [places, aiIntent]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.[0]) return;
@@ -246,6 +316,47 @@ export default function NearbyPlacesPage() {
         </div>
       </div>
 
+      {/* Groq AI Smart Search Bar */}
+      <div className="glass-strong p-3.5 rounded-2xl mb-4 border border-primary/25 shadow-sm">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex-1 glass px-3 py-2 rounded-xl flex items-center gap-2 border border-white/10">
+            <Bot className="w-4 h-4 text-primary shrink-0" />
+            <input
+              value={aiQuery}
+              onChange={(e) => setAiQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAiSearch()}
+              placeholder="Ask AI: e.g. 'peaceful historic spots for couples', 'heritage spots under ₹500'…"
+              className="bg-transparent outline-none flex-1 text-sm text-foreground placeholder:text-muted-foreground"
+            />
+            {aiIntent && (
+              <button onClick={clearAiFilter} className="text-xs text-muted-foreground hover:text-white px-1" title="Clear filter">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={handleAiSearch}
+            disabled={aiSearching || !aiQuery.trim()}
+            className="bg-gradient-pink-blue text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 shadow-glow-pink disabled:opacity-50 hover:opacity-95 transition shrink-0"
+          >
+            {aiSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            <span>Smart Search</span>
+          </button>
+        </div>
+
+        {aiIntent && (
+          <div className="mt-2.5 pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-1.5 text-primary-glow">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>AI Filter: <strong>{aiIntent.interpreted_query || aiIntent.category || "matched preferences"}</strong></span>
+            </div>
+            <button onClick={clearAiFilter} className="text-[11px] text-muted-foreground hover:text-white underline">
+              Reset filter
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="flex flex-wrap gap-2 mb-5">
         <div className="glass-strong flex items-center gap-2 px-3 py-2 flex-1 min-w-[260px]">
           <Navigation className="w-4 h-4 text-secondary" />
@@ -268,7 +379,7 @@ export default function NearbyPlacesPage() {
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {places.map((p, i) => {
+          {displayedPlaces.map((p, i) => {
             const distanceM = distM(pos, [p.lat, p.lng]);
             const isNear = distanceM <= 500;
             const isVisited = visited.has(p.id);
