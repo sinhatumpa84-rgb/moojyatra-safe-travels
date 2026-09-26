@@ -1,5 +1,9 @@
 <div align="center">
 
+<p align="center">
+  <img src="public/logo.png" alt="MoojYatra Logo" width="220" />
+</p>
+
 # 🌍 MoojYatra — Gamified AI Smart Travel Platform
 
 <p align="center">

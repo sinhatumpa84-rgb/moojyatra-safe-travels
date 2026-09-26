@@ -39,10 +39,12 @@ export default function Navbar({ lang, setLang }: { lang: Lang; setLang: (l: Lan
     <header className="sticky top-0 z-40 px-3 sm:px-4 pt-2 sm:pt-4 w-full">
       <div className="w-full glass-strong flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl gap-2 sm:gap-3">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <div className="w-8 sm:w-9 h-8 sm:h-9 rounded-lg sm:rounded-xl bg-gradient-sunset grid place-items-center font-black text-sm sm:text-base text-white shadow-glow-pink">
-            <Plane className="w-4 sm:w-5 h-4 sm:h-5" fill="currentColor" />
-          </div>
+        <Link to="/" className="flex items-center gap-2 shrink-0 group">
+          <img
+            src="/logo.png"
+            alt="MoojYatra Logo"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-contain shadow-glow-pink transition-transform duration-200 group-hover:scale-105"
+          />
           <div className="flex flex-col leading-none">
             <span className="font-extrabold tracking-tight gradient-text text-base sm:text-lg">MoojYatra</span>
             <span className="text-[9px] sm:text-[10px] text-muted-foreground whitespace-nowrap">Anti-scam travel</span>

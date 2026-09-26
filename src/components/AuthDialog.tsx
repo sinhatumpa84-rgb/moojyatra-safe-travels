@@ -76,7 +76,8 @@ export default function AuthDialog({ open, onOpenChange }: { open: boolean; onOp
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+        <DialogHeader className="items-center text-center">
+          <img src="/logo.png" alt="MoojYatra" className="w-14 h-14 rounded-2xl object-contain mb-1 shadow-glow-pink" />
           <DialogTitle className="gradient-text text-2xl">
             {mode === "signin" ? "Welcome back 🙏" : "Join MoojYatra"}
           </DialogTitle>
